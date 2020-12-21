@@ -1,5 +1,7 @@
-#define PETOK
-//#define MARIO
+#include "main.h"
+
+//#define PETOK
+#define MARIO
 
 #ifdef PETOK
 
@@ -13,11 +15,6 @@
 #include "WebServer.h"
 #include "FirstConnection.h"
 #include "NetConf.h"
-
-//==============================================================
-
-#define TIMEOUT_STEP_MS 500
-#define TIMEOUT_MS 30000
 
 //==============================================================
 
@@ -97,129 +94,23 @@ void loop(void){
 //#define WAKE_NO_RFCAL    RF_NO_CAL
 //#define WAKE_RF_DISABLED RF_DISABLED
 
+#include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 #include <ThingSpeak.h>
+#include "SensorUtils.h"
 
-//from BSEC library:
-#define BSEC_MAX_STATE_BLOB_SIZE     (139)        /*!< Maximum size (in bytes) of the data blobs returned by bsec_get_state()*/
-
-#define FW_VERSION "V0.2"
-
-#define BUTTON_PIN D3
-
-#define FACTORY_RESET_TIME_MS 5000
-
-#define DEEPSLEEP_CORRECTION_TIME_US (14000000ULL) //to be found experimentally. Maybe it varies for each different ESP8266 chip
-
-#define ACDC_TH_VOLTAGE 4.5
-#define OFF_TH_VOLTAGE 3
-
-#define SAMPLE_PERIOD_US (5*60*1000000ULL)
-static_assert(SAMPLE_PERIOD_US%300000000ULL == 0, "SAMPLE_PERIOD_US must be multiple of 5min!");
-//#define CONF_UPDATE_TIME_US (10*60*1000000ULL)
-//static_assert(SAMPLE_PERIOD_US >= CONF_UPDATE_TIME_US, "Conf. time cannot be greater than the time between two samples!");
-
-//#define HTU21D_SENSOR //default
-#define BME680_SENSOR
-
-#if defined(HTU21D_SENSOR) && defined(BME680_SENSOR)
-  #undef BME680_SENSOR
-#endif
-
-//NumCH & WriteAPI
-//Mario46 + Cucina46: 998086, QZL25Q0X3LWQLYKH
-//Sabina46 + Appartamento48: 998096, TZD96RGWP4QNZM41
-//Nonno18: 1007621, 7DOVMP5V15NZPH9P
-
-//Default: 1, Cucina46: 4, Appartamento48: 4
-#define FIRST_FIELD 4
-
-//----------------  Fill in your credentials   ---------------------
-#define WLAN_SSID "Infostrada-852489"             // your network SSID (name) 
-#define WLAN_PASSWD "Dizzymoon262!"               // your network password
-//Thingiverse credentials
-unsigned long myChannelNumber = 998086;           // Replace the 0 with your channel number
-const char *myWriteAPIKey = "QZL25Q0X3LWQLYKH";   // Paste your ThingSpeak Write API Key between the quotes 
-//------------------------------------------------------------------
-
-int set_fields(uint8_t firstField, uint8_t nFields, float *arr) {
-  int x = 0;
-  
-  for(int i=0; i<nFields; i++) x |= ThingSpeak.setField(firstField+i, arr[i]);
-
-  return x;
-}
-
-uint32_t calculateCRC32(const uint8_t *data, size_t length) {
-  uint32_t crc = 0xffffffff;
-  while (length--) {
-    uint8_t c = *data++;
-    for (uint32_t i = 0x80; i > 0; i >>= 1) {
-      bool bit = crc & 0x80000000;
-      if (c & i) {
-        bit = !bit;
-      }
-      crc <<= 1;
-      if (bit) {
-        crc ^= 0x04c11db7;
-      }
-    }
-  }
-  return crc;
-}
-
-uint32_t fwVersionToUINT32(char* str) {
-  return str[0]<<24 | str[1]<<16 | str[2]<<8 | str[3];
-}
-
-struct rtc{
-  uint64_t sensor_state_time = 0; //due to program code it must be before crc32 field!
-  uint32_t crc32 = 0;
-  uint8_t ch;
-  uint8_t ap_mac[6];
-  //uint8_t sensor_state[4*((BSEC_MAX_STATE_BLOB_SIZE-1)/4+1)] = {0}; //used only for CRC32 in HTU21D
-  uint8_t sensor_state[BSEC_MAX_STATE_BLOB_SIZE] = {0}; //used only for CRC32 in HTU21D
-  uint64_t cntSleepTime_us = SAMPLE_PERIOD_US;
-  uint32_t fwVersion = 0;
-  //uint32_t enableConf = 1;
-  //uint8_t padding; //find it increasing until the vector until the compiler error disappear
-} rtcData;
-
-static_assert(sizeof(rtcData)%4 == 0, "sizeof(rtcData) must be multiple of 4 bytes!");
-static_assert(sizeof(rtcData)<=512, "RTC structure too big! RTC memory size is 512 bytes.");
+rtc rtcData;
 
 uint16_t crcDataLength = sizeof(rtcData)-(((uint8_t*) &rtcData.crc32)+sizeof(rtcData.crc32)-((uint8_t*) &rtcData));
 
 #ifdef BME680_SENSOR
-//#include <Arduino.h>
 #include <sys/time.h>
 #include <bsec.h>
-/* Configure the BSEC library with information about the sensor
-    18v/33v = Voltage at Vdd. 1.8V or 3.3V
-    3s/300s = BSEC operating mode, BSEC_SAMPLE_RATE_LP or BSEC_SAMPLE_RATE_ULP
-    4d/28d = Operating age of the sensor in days
-    generic_18v_3s_4d
-    generic_18v_3s_28d
-    generic_18v_300s_4d
-    generic_18v_300s_28d
-    generic_33v_3s_4d
-    generic_33v_3s_28d
-    generic_33v_300s_4d
-    generic_33v_300s_28d
-*/
-const uint8_t bsec_config_iaq[] = {
-#include "config/generic_33v_300s_4d/bsec_iaq.txt"
-};
-
-#define CS_PIN D8
-
-#define LOG(fmt, ...) (Serial.printf("%lu: " fmt "\n", millis(), ##__VA_ARGS__))
-
-#define N_FIELDS 5
+#include "BMEConfig.h"
 
 Bsec sensor;
 
@@ -236,31 +127,11 @@ bsec_virtual_sensor_t sensor_list[] = {
   BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,
 };
 
-bool CheckSensor() {
-  if (sensor.status < BSEC_OK) {
-    LOG("BSEC error, status %d!", sensor.status);
-    return false;
-  } else if (sensor.status > BSEC_OK) {
-    LOG("BSEC warning, status %d!", sensor.status);
-  }
-
-  if (sensor.bme680Status < BME680_OK) {
-    LOG("Sensor error, bme680_status %d!", sensor.bme680Status);
-    return false;
-  } else if (sensor.bme680Status > BME680_OK) {
-    LOG("Sensor warning, status %d!", sensor.bme680Status);
-  }
-
-  return true;
-}
-
 #else
 
 #include <Wire.h>
 #include <HTU21D.h>
-
-#define SDA_PIN D2
-#define SCL_PIN D1
+#include "HTUConfig.h"
 
 /*
 HTU21D(resolution)
@@ -274,7 +145,7 @@ HTU21D myHTU21D(HTU21D_RES_RH12_TEMP14);
 
 #endif
 
-void connectWiFi(struct rtc *rtcData, bool rtcValid) {
+void connectWiFi(rtc *rtcData, bool rtcValid) {
   //Switch Radio back On
   WiFi.forceSleepWake();
   delay(1);
@@ -327,7 +198,7 @@ void connectWiFi(struct rtc *rtcData, bool rtcValid) {
     rtcData->ch = WiFi.channel();
     memcpy( rtcData->ap_mac, WiFi.BSSID(), 6 ); // Copy 6 bytes of BSSID (AP's MAC address)
     rtcData->crc32 = calculateCRC32(((uint8_t*) &rtcData->crc32)+sizeof(rtcData->crc32), crcDataLength);
-    ESP.rtcUserMemoryWrite(0, (uint32_t*) rtcData, sizeof(struct rtc));
+    ESP.rtcUserMemoryWrite(0, (uint32_t*) rtcData, sizeof(rtc));
   }
 }
 
@@ -422,7 +293,7 @@ void setup() {
   
   SPI.begin();
   sensor.begin(CS_PIN, SPI);
-  if (!CheckSensor()) {
+  if (!CheckSensor(sensor)) {
     //LOG("Failed to init BME680, check wiring!");
     ESP.deepSleep(5e6);
     return;
@@ -431,7 +302,7 @@ void setup() {
   //LOG("BSEC version %d.%d.%d.%d", sensor.version.major, sensor.version.minor, sensor.version.major_bugfix, sensor.version.minor_bugfix);
 
   sensor.setConfig(bsec_config_iaq);
-  if (!CheckSensor()) {
+  if (!CheckSensor(sensor)) {
     //LOG("Failed to set config!");
     ESP.deepSleep(5e6);
     return;
@@ -439,7 +310,7 @@ void setup() {
 
   if(rtcValid) {
     sensor.setState(rtcData.sensor_state);
-    if (!CheckSensor()) {
+    if (!CheckSensor(sensor)) {
       //LOG("Failed to set state!");
       ESP.deepSleep(5e6);
       return;
@@ -452,7 +323,7 @@ void setup() {
   }
 
   sensor.updateSubscription(sensor_list, sizeof(sensor_list) / sizeof(sensor_list[0]), BSEC_SAMPLE_RATE_ULP);
-  if (!CheckSensor()) {
+  if (!CheckSensor(sensor)) {
     //LOG("Failed to update subscription!");
     ESP.deepSleep(5e6);
     return;
@@ -487,7 +358,7 @@ void setup() {
     data[4] = battery;
     
     sensor.getState(rtcData.sensor_state);
-    CheckSensor(); //Only useful to notify error/warnings through serial
+    CheckSensor(sensor); //Only useful to notify error/warnings through serial
   } else {
     LOG("Failed to get data!");
     ESP.deepSleep(5e6);
