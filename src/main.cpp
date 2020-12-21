@@ -267,16 +267,21 @@ void setup(void){
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());  //IP address assigned to your ESP
 
-  MDNS.begin(MDNS_NAME);
- 
+  if (!MDNS.begin(MDNS_NAME))
+  { // Start the mDNS responder for esp8266.local
+    Serial.println("Error setting up MDNS responder!");
+  }
+  MDNS.addService("http", "tcp", 80);
+  Serial.println("mDNS responder started");
+
   server.on("/", handleRoot);      //Which routine to handle at root location
   server.on("/action_page", handleForm); //form action is handled here
 
   server.begin();                  //Start server
-  Serial.println("HTTP server started");
+  
+  //Serial.println("HTTP server started");
 
-  MDNS.addService("http", "tcp", 80);
-  Serial.println("MDNS started");
+  
 }
 //==============================================================
 //                     LOOP
