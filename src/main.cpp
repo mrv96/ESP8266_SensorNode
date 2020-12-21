@@ -64,9 +64,10 @@ void setup(void){
   if (!MDNS.begin(MDNS_NAME))
   { // Start the mDNS responder for esp8266.local
     Serial.println("Error setting up MDNS responder!");
+  } else {
+    MDNS.addService("http", "tcp", 80);
+    Serial.println("mDNS responder started");
   }
-  MDNS.addService("http", "tcp", 80);
-  Serial.println("mDNS responder started");
 
   server.on("/", handleRoot);      //Which routine to handle at root location
   server.on("/action_page", handleForm); //form action is handled here
