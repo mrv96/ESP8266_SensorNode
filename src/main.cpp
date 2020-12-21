@@ -13,6 +13,7 @@
 #include <DNSServer.h>
 #include <ESP8266mDNS.h>
 #include <LittleFS.h>
+#include "WebServer.h"
 
 #define MDNS_NAME "esp8266"
 #define NODE_DEFAULT_ADDRESS ((uint32_t) 211)
@@ -20,91 +21,7 @@
 #define TIMEOUT_STEP_MS 500
 #define TIMEOUT_MS 30000
 
-float param1=1000;
-float param2=2000;
-
-const char SEND_page_OK[] PROGMEM = "<body style=\"background-color:lightgreen\"><a><center><h1> <br><br><br><font size=\"10\">New settings acquired successfully!</font></h1></center> </a></body>";
-
-const char SEND_page_FAILURE[] PROGMEM = "<body style=\"background-color:rgba(255,20,0,0.6)\"><a><center><h1><p> <br><br><br><font size=\"10\">Oops! Something went wrong.</font></p></h1></center> </a></body>";
-
-const char MAIN_page[] PROGMEM = R"=====(
-<!DOCTYPE html>
-<html>
-  <head> 
-    <title>Change Placeholder alignment</title> 
-    <style> 
-      
-      input[type="text"]::placeholder { 
-        text-align: center; 
-      } 
-
-      body { 
-        text-align:center; 
-      }
-    </style> 
-  </head> 
-    
-<body style="background-color:powderblue;">
-
-<h1><font size="10">NODE SETTING</font></h1>
-
-<form action="/action_page">
- <b> <font size="4">parameter 1:</font></b>
- <br>
-  <input type="number" name="param1"  min="1" max="5" style="cursor:pointer;"  title="meaning of param1"> 
- <br>
- <i>actual value %.2f</i>
-  <br>
-  <br>
-  <br>
-  <b><font size="4">parameter 2:</font></b><br>
-  <input type="number" name="param2"  min="-10" max="40" style="cursor:pointer;"  title="meaning of param2">
-  <br>
-  <i>actual value %.2f</i>
-  <br>
-  <br>
-  <br>
-  <input type="submit" value="Submit">
-  
-</form> 
-</body>
-</html>
-)=====";
-
-
 ESP8266WebServer server(80); //Server on port 80
-
-//===============================================================
-// This routine is executed when you open its IP in browser
-//===============================================================
-void handleRoot() {
-  
-  char html[sizeof(MAIN_page)+100]; //NOTE: sizeof(html) > sizeof(MAIN_page)
-  
-  //Serial.println(sizeof(MAIN_page));
-  
-  snprintf_P(html, sizeof(html), MAIN_page, param1,param2);
-
-   server.send_P(200, "text/html", html);
-}
-//===============================================================
-// This routine is executed when you press submit
-//===============================================================
-void handleForm() {
-  String param1 = server.arg("param1"); 
-  String param2 = server.arg("param2"); 
-
- Serial.print("Parameter 1: ");
- Serial.println(param1.toFloat());
-
- Serial.print("parameter 2: ");
- Serial.println(param2.toFloat());
- 
- server.send_P(200, "text/html", SEND_page_OK); 
-
-//if (wrong)
-// server.send_P(200, "text/html", SEND_page_FAILURE); 
-}
 
 //==============================================================
 
