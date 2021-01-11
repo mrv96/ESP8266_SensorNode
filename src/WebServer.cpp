@@ -15,13 +15,13 @@ extern ESP8266WebServer server;
 void handleRoot() {
   WebServerConfigs config;
   
-  char html[sizeof(MAIN_page)+100]; //NOTE: sizeof(html) > sizeof(MAIN_page)
+  char html[sizeof(MAIN_page)+10000]; //NOTE: sizeof(html) > sizeof(MAIN_page)
   
   //Serial.println(sizeof(MAIN_page));
 
   loadConfiguration(filename, config);
   
-  snprintf_P(html, sizeof(html), MAIN_page, config.sampleTime, config.param2);
+  snprintf_P(html, sizeof(html), MAIN_page,config.ip,config.ip, config.sampleTime, config.param2);
 
    server.send_P(200, "text/html", html);
 }
@@ -32,11 +32,11 @@ void handleRoot() {
 void handleForm() {
   WebServerConfigs config;
 
-  String par1_in = server.arg("param1");
+  String sampleTime = server.arg("sampleTime");
   String par2_in = server.arg("param2");
 
   Serial.print("Sample time: ");
-  Serial.println(config.sampleTime = par1_in.toFloat());
+  Serial.println(config.sampleTime = sampleTime.toFloat());
 
   Serial.print("parameter 2: ");
   Serial.println(config.param2 = par2_in.toFloat());

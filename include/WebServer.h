@@ -3,6 +3,7 @@
 typedef struct {
   float sampleTime;
   float param2;
+  IPAddress ip;
 } WebServerConfigs;
 
 void handleRoot();

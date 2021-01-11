@@ -24,7 +24,7 @@ const char MAIN_page[] PROGMEM = R"=====(
 <!DOCTYPE html>
 <html>
   <head> 
-    <title>Change Placeholder alignment</title> 
+    <title>Node Setup</title> 
     <style> 
       
       input[type="text"]::placeholder { 
@@ -40,16 +40,53 @@ const char MAIN_page[] PROGMEM = R"=====(
 <body style="background-color:powderblue;">
 
 <h1><font size="10">NODE SETTING</font></h1>
+  
+    <br>
+  <br>
 
 <form action="/action_page">
- <b> <font size="4">parameter 1:</font></b>
- <br>
-  <input type="number" name="param1"  min="1" max="5" style="cursor:pointer;"  title="meaning of param1"> 
+  <font size="3">Actual IP address of the node %s:</font>
+  <br>
+   <br>
+   
+     <script type="text/javascript">
+    function EnableDisableTextBox(checkIP) {
+        
+        ip.disabled = checkIP.checked ? true : false;
+        
+        if (!ip.disabled) {
+            ip.focus();
+        }
+    }
+</script>
+
+<font size="3">Set your own IP &emsp;  <input id="ip" name="nodeAddress" disabled value="%s" />       
+<label for="checkIP"> &emsp;  &emsp; 
+    <input type="checkbox" id="checkIP" name="ip_changed" value="false" onclick="EnableDisableTextBox(this)" checked/>
+    Use IP assigned by DHCP
+</label>
+  <br>  
+   <br>
+     <br>
+     <font size="1"> <em>Hover the mouse over the boxex for tooltips</em></font>
+  <br>
+  <br>
+ <b> <font size="4">ThingSpeak channel number:</font></b>
+  <input type="number" name="myChannelNumber"     title="Insert here the channel number provided by ThingSpeak platoform">
+    <br>
+   <b> &emsp; &emsp; &emsp;<font size="4">ThingSpeak API Key:</font></b> 
+  <input type="number" name="myWriteAPIKey"     title="Insert here the key provided by ThingSpeak platoform"> 
+     <br>
+  <br>
+  <br>
+ <b> <font size="4">Sample interval:</font></b>
+  <input type="number" name="sampleTime"  min="1" max="50" style="cursor:pointer;"  title="Set how often the node will sample the environmental parameters"> 
  <br>
  <i>actual value %.2f</i>
   <br>
   <br>
   <br>
+  
   <b><font size="4">parameter 2:</font></b><br>
   <input type="number" name="param2"  min="-10" max="40" style="cursor:pointer;"  title="meaning of param2">
   <br>
@@ -57,7 +94,14 @@ const char MAIN_page[] PROGMEM = R"=====(
   <br>
   <br>
   <br>
-  <input type="submit" value="Submit">
+  
+  
+
+  <br>
+  <br>
+  <br>
+  
+  <input  type="submit" value="Submit">
   
 </form> 
 </body>
@@ -72,11 +116,11 @@ ESP8266WebServer server(80); //Server on port 80
 //===============================================================
 void handleRoot() {
   
-  char html[sizeof(MAIN_page)+100]; //NOTE: sizeof(html) > sizeof(MAIN_page)
+  char html[sizeof(MAIN_page)+1000]; //NOTE: sizeof(html) > sizeof(MAIN_page)
   
   //Serial.println(sizeof(MAIN_page));
   
-  snprintf_P(html, sizeof(html), MAIN_page, param1,param2);
+  snprintf_P(html, sizeof(html), MAIN_page, param1,param2,param1,param2);
 
    server.send_P(200, "text/html", html);
 }
@@ -84,16 +128,33 @@ void handleRoot() {
 // This routine is executed when you press submit
 //===============================================================
 void handleForm() {
-  String param1 = server.arg("param1"); 
-  String param2 = server.arg("param2"); 
+  String param1 = server.arg("sampleTime"); 
+  String param2 = server.arg("param2");
+  String nodeAddress = server.arg("nodeAddress"); 
 
  Serial.print("Parameter 1: ");
  Serial.println(param1.toFloat());
 
  Serial.print("parameter 2: ");
  Serial.println(param2.toFloat());
+
+  Serial.print("checkbox ");
+  if (server.arg("ip_changed")=="false")
+  { 
+    Serial.println("ip unchanged by the user");
+    }
+   else
+ { 
+    Serial.println("new ip selected ");
+    Serial.println(nodeAddress);
+  
+    }
+    
+
  
- server.send_P(200, "text/html", SEND_page_OK); 
+ server.send_P(200, "text/html", SEND_page_OK);
+
+
 
 //if (wrong)
 // server.send_P(200, "text/html", SEND_page_FAILURE); 
