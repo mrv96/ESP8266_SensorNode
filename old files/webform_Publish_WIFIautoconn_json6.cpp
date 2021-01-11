@@ -116,7 +116,7 @@ ESP8266WebServer server(80); //Server on port 80
 //===============================================================
 void handleRoot() {
   
-  char html[sizeof(MAIN_page)+1000]; //NOTE: sizeof(html) > sizeof(MAIN_page)
+  char html[sizeof(MAIN_page)+1000]; //NOTE: sizeof(html) > sizeof(MAIN_page
   
   //Serial.println(sizeof(MAIN_page));
   
