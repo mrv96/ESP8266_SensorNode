@@ -21,7 +21,7 @@ void handleRoot() {
 
   loadConfiguration(filename, config);
   
-  snprintf_P(html, sizeof(html), MAIN_page,config.ip,config.ip, config.sampleTime, config.param2);
+  snprintf_P(html, sizeof(html), MAIN_page,config.param2,config.param2, config.sampleTime, config.param2);
 
    server.send_P(200, "text/html", html);
 }

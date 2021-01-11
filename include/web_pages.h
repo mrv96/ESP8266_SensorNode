@@ -16,7 +16,7 @@ const char MAIN_page[] PROGMEM = R"=====(
 <!DOCTYPE html>
 <html>
   <head> 
-    <title>Change Placeholder alignment</title> 
+    <title>Node Setup</title> 
     <style> 
       
       input[type="text"]::placeholder { 
@@ -37,9 +37,10 @@ const char MAIN_page[] PROGMEM = R"=====(
   <br>
 
 <form action="/action_page">
-  <font size="3">Actual IP address of the node %.2f:</font>
+  <font size="3">Actual IP address of the node %s:</font>
   <br>
    <br>
+   
      <script type="text/javascript">
     function EnableDisableTextBox(checkIP) {
         
@@ -51,9 +52,9 @@ const char MAIN_page[] PROGMEM = R"=====(
     }
 </script>
 
-<font size="3">Set your own IP &emsp;  <input id="ip" disabled value="%.2f" />       
+<font size="3">Set your own IP &emsp;  <input id="ip" name="nodeAddress" disabled value="%s" />       
 <label for="checkIP"> &emsp;  &emsp; 
-    <input type="checkbox" id="checkIP" onclick="EnableDisableTextBox(this)" checked/>
+    <input type="checkbox" id="checkIP" name="ip_changed" value="false" onclick="EnableDisableTextBox(this)" checked/>
     Use IP assigned by DHCP
 </label>
   <br>  
@@ -86,11 +87,13 @@ const char MAIN_page[] PROGMEM = R"=====(
   <br>
   <br>
   
+  
 
- <!--   <button type="submit"> Send </button>-->
-
-
-<input style="height:50px;width:100px;color:green" type="submit" value="Submit">
+  <br>
+  <br>
+  <br>
+  
+  <input  type="submit" value="Submit">
   
 </form> 
 </body>
